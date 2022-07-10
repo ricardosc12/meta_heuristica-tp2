@@ -2,7 +2,7 @@ from math import sin, pi, pow
 import random
 import numpy as np
 
-F = 0.8
+F = 1
 Cr = 0.9
 
 max = [10,10]
@@ -65,7 +65,6 @@ def generation(NP):
         y = i*intervalY
         _min = pow((y-4),2)+1
         _max = pow(abs((y-1)),1/2)
-
         x = random.uniform(_min, _max)
 
         population.append([x if x<max[0] else max[0],y])
@@ -124,12 +123,17 @@ def ED (F, Cr, NP):
 
             
 
-            vetor_trial = cruzamento(vetor_target, vetor_doador)  # Cruzamento Binomial ou Exponencial
+            # vetor_trial = cruzamento(vetor_target, vetor_doador)  # Cruzamento Binomial ou Exponencial
 
             vetor_trial = []
+            auxTrial = 0
             while not len(vetor_trial):
-                aux = _random(vetor)
+                aux = cruzamento(vetor_target, vetor_doador)
+                # aux = vetor_target
                 vetor_trial = aux if gg(aux) else []
+                auxTrial+=1
+                if(auxTrial==1000):
+                    vetor_trial = vetor_target
 
             # print('vetor_trial',vetor_trial)
 
@@ -147,6 +151,9 @@ def ED (F, Cr, NP):
             return f(best(vetor)),best(vetor)
 
         vetor = nova_geracao
+
+        # if(geration == 20):
+        #     return f(best(vetor)),best(vetor)
 
 # ED(F,Cr,20)
 _BEST,_VARS = ED(F,Cr,20)
