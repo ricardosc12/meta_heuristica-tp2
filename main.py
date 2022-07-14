@@ -2,6 +2,7 @@ from math import sin, pi, pow
 import random
 from turtle import Vec2D
 import numpy as np
+import matplotlib.pyplot as plt
 
 F = 0.8
 Cr = 0.9
@@ -140,7 +141,7 @@ def ED (F, Cr, NP):
                     next_gen=vetor_trial
                 else: next_gen=vetor_target
             # ------------------------
-            
+
             nova_geracao[i] = next_gen if(constrainedEpsilon(next_gen)) else vetor[i]
 
         geration += 1
@@ -150,15 +151,34 @@ def ED (F, Cr, NP):
             return f(bestFact(vetor)),bestFact(vetor)
 
 
+resultados = []
 _BEST,_VARS = ED(F,Cr,NP)
+resultados.append(_BEST)
 for i in range(ITERATIONS):
     aux1,aux2 = ED(F,Cr,NP)
+    resultados.append(aux1)
     if(aux1<=_BEST):
         _BEST =aux1
         _VARS =aux2
 
 print(_BEST,_VARS)
-print(gg(_VARS))
-print(constrainedEpsilon(_VARS))
-print('confirm',f(_VARS),_VARS)
+MIN = np.min(resultados)
+MAX = np.max(resultados)
+MEAN = np.mean(resultados)
+DESVIO = np.std(resultados)
+
+print(" MIN",MIN)
+print(" MAX",MAX)
+print(" MEAN",MEAN)
+print(" DESVIO",DESVIO)
+plt.figure()
+fig, ax = plt.subplots()
+plt.title("Problema de minimização - 1")
+ax.boxplot(resultados)
+plt.show()
+# plt.savefig("plots/teste")
+
+# print(gg(_VARS))
+# print(constrainedEpsilon(_VARS))
+# print('confirm',f(_VARS),_VARS)
 print('base',f([1.22,4.70]),[1.22,4.70])

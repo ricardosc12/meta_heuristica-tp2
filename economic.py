@@ -1,17 +1,18 @@
-# from data2 import maquinas, potencias
-# from caso2 import maquinas
-from caso3 import maquinas, potencias
+from data2 import maquinas, potencias
+# from caso2 import maquinas, potencias
+# from caso3 import maquinas, potencias
 from math import sin, pi, pow
 import numpy as np
 import random
+import matplotlib.pyplot as plt
+import time
 
-
-PD = 1800
-ITERATIONS = 200
-GERATIONS = 20
-NP = 10
-Cr = 0.9
-F = 0.5
+PD = 10500
+ITERATIONS = 100
+GERATIONS = 10
+NP = 30
+Cr = 0.6
+F = 0.8
 
 def P1(p1,data):
     pmin,pmax,a,b,c,e,f = data
@@ -100,28 +101,25 @@ def restrictions(vetor):
         
     return g1(vetor)+g2(vetor)+g3(vetor)
 
-# def constrainedEpsilon(v):
-#     return restrictions(v)<=0 and g3(v)
+def constrainedEpsilon(v):
+    return restrictions(v)<=0
 
 def _random(population):
     return population[random.randint(0, len(population)-1)]
 
 def best(population):
     best = population[0]
-    index = 0
-    for p in range(len(population)):
-        if(f(population[p])<=f(best)):
-            best = population[p]
-            index = p
+    for solution in population:
+        if(f(solution)<=f(best)):
+            best = solution
     return best
 
-# population = generation(20)
-# for i in population:
-#     print(f(i))
-
-# best_, index = best(population)
-# print('best',f(best_))
-
+def bestFact(population):
+    best = population[0]
+    for solution in population:
+        if(f(solution)<=f(best) and constrainedEpsilon(solution)):
+            best = solution
+    return best
 
 def ED (F, Cr, NP):
     vetor = generation(NP) 
@@ -131,7 +129,7 @@ def ED (F, Cr, NP):
     while True:
         for i in range(NP):
 
-            R3 = np.array(best(vetor))
+            R3 = np.array(_random(vetor))
             R1 = np.array(_random(vetor))
             R2 = np.array(_random(vetor))
             vetor_doador = R3 + F*(R1 - R2)
@@ -140,33 +138,59 @@ def ED (F, Cr, NP):
 
             next_gen = []
 
-            if(f(vetor_trial) <= f(vetor_target)): 
-                nova_geracao[i] = vetor_trial
+            # epsillon constrained Method
+            if(constrainedEpsilon(vetor_trial) and constrainedEpsilon(vetor_target)):
+                if(f(vetor_trial) <= f(vetor_target)): 
+                    next_gen = vetor_trial
+                else:
+                    next_gen = vetor_target
             else:
-                nova_geracao[i] = vetor_target
+                if(restrictions(vetor_trial) < restrictions(vetor_target)):
+                    next_gen=vetor_trial
+                else: next_gen=vetor_target
+            # ------------------------
+
+            nova_geracao[i] = next_gen
 
         geration += 1
 
         vetor = nova_geracao
 
         if(geration == GERATIONS):
-            return f(best(vetor)),best(vetor)
+            return f(bestFact(vetor)),bestFact(vetor)
 
 
-vetor = generation(NP) 
-for i in vetor:
-    print(restrictions(i))
-# _BEST,_VARS = ED(F,Cr,NP)
-# for i in range(ITERATIONS):
-#     aux1,aux2 = ED(F,Cr,NP)
-#     if(aux1<=_BEST):
-#         _BEST =aux1
-#         _VARS =aux2
+resultados = []
+start = time.time()
+_BEST,_VARS = ED(F,Cr,NP)
+resultados.append(_BEST)
+for i in range(ITERATIONS):
+    aux1,aux2 = ED(F,Cr,NP)
+    resultados.append(aux1)
+    if(aux1<=_BEST):
+        _BEST =aux1
+        _VARS =aux2
 
-# # print(_BEST,_VARS)
-# for i in _VARS:
-#     print(i)
+for i in _VARS:
+    print(i)
 
-# print('confirm',f(_VARS))
-# print("SOMA DE PI", np.sum(_VARS))
-# print('artigo',f(potencias))
+MIN = np.min(resultados)
+MAX = np.max(resultados)
+MEAN = np.mean(resultados)
+DESVIO = np.std(resultados)
+
+print("---------------")
+print(" MIN",MIN)
+print(" MAX",MAX)
+print(" MEAN",MEAN)
+print(" DESVIO",DESVIO)
+print("---------------")
+print('artigo',f(potencias))
+end = time.time()
+print("Tempo de execução {}".format(end - start))
+plt.figure()
+fig, ax = plt.subplots()
+plt.title("Problema de minimização - 2")
+ax.boxplot(resultados)
+plt.show()
+
