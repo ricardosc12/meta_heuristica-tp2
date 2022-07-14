@@ -1,14 +1,17 @@
 from math import sin, pi, pow
 import random
+from turtle import Vec2D
 import numpy as np
 
-F = 1
+F = 0.8
 Cr = 0.9
+NP = 30
+GERATIONS = 50
+ITERATIONS = 30
 
-max = [10,10]
-min = [0 ,0]
+max = [10, 10]
+min = [0 , 0]
 
-# def limits(solution):
 
 def g1(xVector):
     x1 = xVector[0]
@@ -25,8 +28,6 @@ def g2(xVector):
 def restricoes(xVector):
     g1x = g1(xVector)
     g2x = g2(xVector)
-    
-    # fact = pow(g1x,2) + pow(g2x,2)
 
     return True if g1x and g2x else False
 
@@ -39,14 +40,18 @@ def f(xVector):
 
     return -(numerador/denominador)
 
-def _fitness(vetor):
-    return np.sum(list(map(lambda x: f(x),vetor)))
-
 def randFloat():
     return random.uniform(0,1)
 
 def _random(population):
     return population[random.randint(0, len(population)-1)]
+
+def bestFact(population):
+    best = population[0]
+    for solution in population:
+        if(f(solution)<=f(best) and constrainedEpsilon(solution)):
+            best = solution
+    return best
 
 def best(population):
     best = population[0]
@@ -61,13 +66,12 @@ def generation(NP):
     intervalY = (max[1] - min[1])/NP
 
     for i in range(NP+1):
-        # x = 0.1 if i*intervalX == 0 else i*intervalX
         y = i*intervalY
         _min = pow((y-4),2)+1
-        _max = pow(abs((y-1)),1/2)
+        _max = pow(abs(y-1),1/2)
         x = random.uniform(_min, _max)
 
-        population.append([x if x<max[0] else max[0],y])
+        population.append([x,y])
 
     return population
     
@@ -80,17 +84,35 @@ def cruzamento(target,doador):
     return result
 
 def g3(xVector):
-    return True if pow(xVector[0],3)*(xVector[0]+xVector[1])>0 else False
+    return True if pow(xVector[0],3)*(xVector[0]+xVector[1])!=0 else False
+def limits(vetor):
+    x,y = vetor
+    limitX = x>=min[0] and x<=max[0]
+    limitY = y>=min[1] and y<=max[1]
+    return limitY and limitX
 
 def gg(xVector):
     return g1(xVector) and g2(xVector) and g3(xVector)
 
-def ED (F, Cr, NP):
-    vetor = generation(NP) # População inicial  [[0,0], [0.5,0.5], [2,2]]
-    
-    f_vetor = _fitness(vetor)
+def restrictions(vetor):
+    def g1(vetor):
+        rest = pow(vetor[0],2)-vetor[1]+1
+        return 0 if rest<0 else pow(rest,2)
+    def g2(vetor):
+        rest = 1 - vetor[0] + pow((vetor[1] - 4),2)
+        return 0 if rest<0 else pow(rest,2)
+    def g3(vetor):
+        x,y = vetor
+        return abs(pow(x,3)*(x+y))
+    return g1(vetor)+g2(vetor)
+def constrainedEpsilon(v):
+    return restrictions(v)<=0 and g3(v)
 
-    # f_vetor = f(vetor)   # Fitness da população  [10, 20, 40]
+
+
+def ED (F, Cr, NP):
+    vetor = generation(NP)
+    
     geration = 0
 
     nova_geracao = [0 for i in range(NP)]
@@ -98,82 +120,45 @@ def ED (F, Cr, NP):
     while True:
         for i in range(NP):
 
-            vetor_doador = []
+            R3 = np.array(best(vetor))
+            R1 = np.array(_random(vetor))
+            R2 = np.array(_random(vetor))
+            vetor_doador = R3 + F*(R1 - R2)
+            vetor_target = _random(vetor)
+            vetor_trial = cruzamento(vetor_target, vetor_doador)
 
-            while not len(vetor_doador):
-                R3 = np.array(best(vetor))
-                R1 = np.array(_random(vetor))
-                R2 = np.array(_random(vetor))
+            next_gen = []
 
-                # print('R3',R3)
-                # print('R1',R1)
-                # print('R2',R2)
-                aux = R3 + F*(R1 - R2)
-
-                vetor_doador = aux if gg(aux) else [] # Mutação diferencial # R3 _random ou best
-
-            # print('vetor_doador',vetor_doador)
-            vetor_target = []
-            while not len(vetor_target):
-                aux = _random(vetor)
-                vetor_target = aux if gg(aux) else []
-
-
-            # print('vetor_target',vetor_target)
-
-            
-
-            # vetor_trial = cruzamento(vetor_target, vetor_doador)  # Cruzamento Binomial ou Exponencial
-
-            vetor_trial = []
-            auxTrial = 0
-            while not len(vetor_trial):
-                aux = cruzamento(vetor_target, vetor_doador)
-                # aux = vetor_target
-                vetor_trial = aux if gg(aux) else []
-                auxTrial+=1
-                if(auxTrial==1000):
-                    vetor_trial = vetor_target
-
-            # print('vetor_trial',vetor_trial)
-
-            if(f(vetor_trial) <= f(vetor_target)): 
-                nova_geracao[i] = vetor_trial
+            # epsillon constrained Method
+            if(constrainedEpsilon(vetor_trial) and constrainedEpsilon(vetor_target)):
+                if(f(vetor_trial) <= f(vetor_target)): 
+                    next_gen = vetor_trial
+                else:
+                    next_gen = vetor_target
             else:
-                nova_geracao[i] = vetor_target
+                if(restrictions(vetor_trial) < restrictions(vetor_target)):
+                    next_gen=vetor_trial
+                else: next_gen=vetor_target
+            # ------------------------
+            
+            nova_geracao[i] = next_gen if(constrainedEpsilon(next_gen)) else vetor[i]
 
         geration += 1
-
-        if(_fitness(vetor) <= _fitness(nova_geracao)):
-
-            # print('vetor',best(vetor))
-            # print('result',f(best(vetor)))
-            return f(best(vetor)),best(vetor)
-
         vetor = nova_geracao
 
-        # if(geration == 20):
-        #     return f(best(vetor)),best(vetor)
+        if(geration == GERATIONS):
+            return f(bestFact(vetor)),bestFact(vetor)
 
-# ED(F,Cr,20)
-_BEST,_VARS = ED(F,Cr,20)
-for i in range(30):
-    aux1,aux2 = ED(F,Cr,20)
+
+_BEST,_VARS = ED(F,Cr,NP)
+for i in range(ITERATIONS):
+    aux1,aux2 = ED(F,Cr,NP)
     if(aux1<=_BEST):
         _BEST =aux1
         _VARS =aux2
 
 print(_BEST,_VARS)
-
+print(gg(_VARS))
+print(constrainedEpsilon(_VARS))
 print('confirm',f(_VARS),_VARS)
 print('base',f([1.22,4.70]),[1.22,4.70])
-
-# Minimize
-
-# Subject to:
-
-
-
-
-# Sendo 0 ≤ 𝑥1 ≤ 10 e 0 ≤ 𝑥2 ≤ 10
-# print(f([1,2]))

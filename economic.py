@@ -1,14 +1,15 @@
-from data2 import maquinas, potencias
+# from data2 import maquinas, potencias
 # from caso2 import maquinas
+from caso3 import maquinas, potencias
 from math import sin, pi, pow
 import numpy as np
 import random
 
 
-PD = 10500
-ITERATIONS = 30
-GERATIONS = 50
-NP = 20
+PD = 1800
+ITERATIONS = 200
+GERATIONS = 20
+NP = 10
 Cr = 0.9
 F = 0.5
 
@@ -46,7 +47,6 @@ def _generation(data):
         _pd = pd_resto/len(data)
         for i in range(len(population)):
             _max = data[i][1] - population[i]
-            # print(_max)
             _max = _max if _pd>_max else _pd
             _get_pd = random.uniform(0,_max)
             population[i]+=_get_pd
@@ -82,6 +82,27 @@ def g2(data):
 def gg(data):
     return g1(data) and g2(data)
 
+def restrictions(vetor):
+    def g1(vetor):
+        max_min = 0
+        for i in range(len(vetor)):
+            restriction = maquinas[i][0]-vetor[i]
+            max_min+= 0 if restriction<0 else restriction
+        return pow(max_min,2)
+    def g2(vetor):
+        max_min = 0
+        for i in range(len(vetor)):
+            restriction = vetor[i]-maquinas[i][1]
+            max_min+= 0 if restriction<0 else restriction
+        return pow(max_min,2)
+    def g3(vetor):
+        return pow(np.sum(vetor)-PD,2)
+        
+    return g1(vetor)+g2(vetor)+g3(vetor)
+
+# def constrainedEpsilon(v):
+#     return restrictions(v)<=0 and g3(v)
+
 def _random(population):
     return population[random.randint(0, len(population)-1)]
 
@@ -110,35 +131,14 @@ def ED (F, Cr, NP):
     while True:
         for i in range(NP):
 
-            vetor_doador = []
+            R3 = np.array(best(vetor))
+            R1 = np.array(_random(vetor))
+            R2 = np.array(_random(vetor))
+            vetor_doador = R3 + F*(R1 - R2)
+            vetor_target = _random(vetor)
+            vetor_trial = cruzamento(vetor_target, vetor_doador)
 
-            while not len(vetor_doador):
-                R3 = np.array(best(vetor))
-                R1 = np.array(_random(vetor))
-                R2 = np.array(_random(vetor))
-
-                aux = R3 + F*(R1 - R2)
-
-                vetor_doador = aux if gg(aux) else []
-
-            vetor_target = []
-            while not len(vetor_target):
-                aux = _random(vetor)
-                vetor_target = aux if gg(aux) else []
-                # print('t')
-
-            vetor_trial = []
-            auxTrial = 0
-            while not len(vetor_trial):
-                aux = cruzamento(vetor_target, vetor_doador)
-                # aux = vetor_target
-                vetor_trial = aux if gg(aux) else []
-                auxTrial+=1
-                # print('trial')
-                if(auxTrial==1000):
-                    vetor_trial = vetor_target
-
-            # print('vetor_trial',vetor_trial)
+            next_gen = []
 
             if(f(vetor_trial) <= f(vetor_target)): 
                 nova_geracao[i] = vetor_trial
@@ -147,29 +147,26 @@ def ED (F, Cr, NP):
 
         geration += 1
 
-        # if(_fitness(vetor) <= _fitness(nova_geracao)):
-
-        #     # print('vetor',best(vetor))
-        #     # print('result',f(best(vetor)))
-        #     return f(best(vetor)),best(vetor)
-
         vetor = nova_geracao
 
         if(geration == GERATIONS):
             return f(best(vetor)),best(vetor)
 
 
-_BEST,_VARS = ED(F,Cr,NP)
-for i in range(ITERATIONS):
-    aux1,aux2 = ED(F,Cr,NP)
-    if(aux1<=_BEST):
-        _BEST =aux1
-        _VARS =aux2
+vetor = generation(NP) 
+for i in vetor:
+    print(restrictions(i))
+# _BEST,_VARS = ED(F,Cr,NP)
+# for i in range(ITERATIONS):
+#     aux1,aux2 = ED(F,Cr,NP)
+#     if(aux1<=_BEST):
+#         _BEST =aux1
+#         _VARS =aux2
 
-# print(_BEST,_VARS)
+# # print(_BEST,_VARS)
 # for i in _VARS:
 #     print(i)
 
-print('confirm',f(_VARS))
-print("SOMA DE PI", np.sum(_VARS))
-print('artigo',f(potencias))
+# print('confirm',f(_VARS))
+# print("SOMA DE PI", np.sum(_VARS))
+# print('artigo',f(potencias))
